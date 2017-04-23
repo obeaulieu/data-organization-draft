@@ -13,43 +13,60 @@ from netCDF4 import Dataset
 import numpy as np
 from glob import glob
 from osgeo import gdal
+from numpy import shape
 
-gtif = gdal.Open( "/Users/livbeaulieu30/Google Drive/03_Scan0001.TIF" )
-print gtif.GetMetadata()
 
-controlscanFiles = sorted(glob('/Users/livbeaulieu30/Google Drive/03_Scan0001.TIF'))
+# create a new netCDF file
+file = 'BLcontrolscanFiles.nc'
+nc = Dataset(file , 'w' , format='NETCDF4')
+print (nc.file_format)
 
-for i in range(len(controlscanFiles)):
-    try:
-        
-            codename = controlscanFiles
-            # create a new netCDF file
-            ncfile = Dataset('gtif' , 'w' , format='NETCDF4')
-            ncfile.description = 'Scan data'
-            
-            ndim = 120000
-            xdimension = 400
-            ydimension = 300 
-            zdimension = 35
-            
-            #dimensions
-            ncfile.createDimension('time', None)
-            ncfile.createDimension('x', xdimension)
-            ncfile.createDimension('y', ydimension)
-            ncfile.createDimension('z', zdimension)
-            
-            #variables
-            time = ncfile.createVariable('time', 'f8', ('time',))
-            x = ncfile.createVariable('x', 'f4', ('x',))
-            y = ncfile.createVariable('y', 'f4', ('y',))
-            z = ncfile.createVariable('z', 'f4', ('z',))
-            field = ncfile.createVariable('field', 'f8', ('time', 'x', 'y', 'z',))
-            
-            x.units = 'meters'
-            y.units = 'meters'
-            
-            ncfile.close()
-    except:
-        print 'Critical Error'
+#data input                                                       
 
+#gtif = gdal.Open( '/Users/livbeaulieu30/Google Drive/Scan Files/*.DAT' )
+#print gtif.GetMetadata()
+# a = gtif.GetRasterBand(1).ReadAsArray()
+datafiles = glob('/Users/livbeaulieu30/Google Drive/Scan Files/*.DAT')
+
+t_scan = []
+for datafile in datafiles:
+    z1D = np.fromfile(datafile, dtype=np.float32)
+    z = np.reshape(z1D, (-1, 3936))
+    z[z == -9999] = np.nan # no data handling
+    z = np.flipud(z) # flip top to bottom
+    #plt.imshow(z)
+    #plt.show()
+    print datafile
+    t_scan.append(int(datafile.split('TopoDat_')[1].split('.')[0]))
+
+                                                       
+ndim = 9450336
+xdimension = range(0, 3936)
+ydimension = range(0, 2401) 
+#zdimension = 35
+                                                        
+#dimensions
+time = nc.createDimension('time', None)
+nc.createDimension('x', len(xdimension))
+nc.createDimension('y', len(ydimension))
+#nc.createDimension('z', zdimension)
+                                                        
+#variables
+time = nc.createVariable('time', 'f8', ('time',))
+x = nc.createVariable('x', 'f4', ('x',))
+y = nc.createVariable('y', 'f4', ('y',))
+#z = nc.createVariable('z', 'f4', ('z',))
+field = nc.createVariable('field', 'f8', ('time', 'x', 'y'))
+                                                        
+x.units = 'Meters'
+y.units = 'Meters'
+
+
+#def write_nc( datafile, varname, x, y):
+    #nx = len(x)
+    #ny = len(y)
+    
+#write_nc( datafile, 'data', x, y)
+
+nc.close() 
 
